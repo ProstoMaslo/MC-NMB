@@ -1,5 +1,8 @@
 package io.prostomaslo.nmb.renderer;
+import com.mojang.math.Transformation;
 import io.prostomaslo.nmb.model.*;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -9,7 +12,14 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.client.ChunkRenderTypeSet;
+import net.minecraftforge.client.model.data.ModelData;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
 import java.util.function.Function;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,16 +31,14 @@ public class BackportBakedModel implements BakedModel {
     private final List<BakedQuad> generalQuads;
     private final Map<Direction, List<BakedQuad>> faceQuads = new EnumMap<>(Direction.class);
     private final CustomModel customModel;
-    private final ResourceLocation modelId;
     private final TextureAtlasSprite particleTextureAtlasSprite;
     private final Function<ResourceLocation, TextureAtlasSprite> spriteGetter;
-    private final com.mojang.math.Transformation blockstateTransform;
+    private final Transformation blockstateTransform;
     private static final int VERTEX_SIZE = 8;
     private static final int QUAD_SIZE = 4 * VERTEX_SIZE;
-    public BackportBakedModel(CustomModel customModel, BakedModel fallbackModel, ResourceLocation modelId, Function<ResourceLocation, TextureAtlasSprite> spriteGetter, com.mojang.math.Transformation blockstateTransform) {
+    public BackportBakedModel(CustomModel customModel, BakedModel fallbackModel, Function<ResourceLocation, TextureAtlasSprite> spriteGetter, Transformation blockstateTransform) {
         this.fallbackModel = fallbackModel;
         this.customModel = customModel;
-        this.modelId = modelId;
         this.spriteGetter = spriteGetter;
         this.blockstateTransform = blockstateTransform;
         this.particleTextureAtlasSprite = fallbackModel.getParticleIcon();
@@ -64,26 +72,26 @@ public class BackportBakedModel implements BakedModel {
     @Override
     public ItemOverrides getOverrides() { return fallbackModel.getOverrides(); }
     @Override
-    public net.neoforged.neoforge.client.ChunkRenderTypeSet getRenderTypes(@org.jetbrains.annotations.NotNull BlockState state, @org.jetbrains.annotations.NotNull net.minecraft.util.RandomSource rand, @org.jetbrains.annotations.NotNull net.neoforged.neoforge.client.model.data.ModelData data) {
+    public ChunkRenderTypeSet getRenderTypes(@NotNull BlockState state, @NotNull RandomSource rand, @NotNull ModelData data) {
         String rt = customModel.getRenderType();
         if ("translucent".equals(rt) || "minecraft:translucent".equals(rt)) {
-            return net.neoforged.neoforge.client.ChunkRenderTypeSet.of(net.minecraft.client.renderer.RenderType.translucent());
+            return ChunkRenderTypeSet.of(RenderType.translucent());
         } else if ("cutout".equals(rt) || "minecraft:cutout".equals(rt)) {
-            return net.neoforged.neoforge.client.ChunkRenderTypeSet.of(net.minecraft.client.renderer.RenderType.cutout());
+            return ChunkRenderTypeSet.of(RenderType.cutout());
         } else if ("cutout_mipped".equals(rt) || "minecraft:cutout_mipped".equals(rt)) {
-            return net.neoforged.neoforge.client.ChunkRenderTypeSet.of(net.minecraft.client.renderer.RenderType.cutoutMipped());
+            return ChunkRenderTypeSet.of(RenderType.cutoutMipped());
         }
         return fallbackModel.getRenderTypes(state, rand, data);
     }
     @Override
-    public java.util.List<net.minecraft.client.renderer.RenderType> getRenderTypes(@org.jetbrains.annotations.NotNull net.minecraft.world.item.ItemStack itemStack, boolean fabulous) {
+    public List<RenderType> getRenderTypes(@NotNull ItemStack itemStack, boolean fabulous) {
         if (customModel.isIgnoreLight()) {
             return java.util.List.of(
-                net.minecraft.client.renderer.RenderType.entityCutout(
-                    net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS
+                RenderType.entityCutout(
+                    InventoryMenu.BLOCK_ATLAS
                 ),
-                net.minecraft.client.renderer.RenderType.entityTranslucentEmissive(
-                    net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS
+                RenderType.entityTranslucentEmissive(
+                    InventoryMenu.BLOCK_ATLAS
                 )
             );
         }
@@ -113,9 +121,9 @@ public class BackportBakedModel implements BakedModel {
                 applyRotation(vertices, rotation);
             }
             if (blockstateTransform != null && !blockstateTransform.isIdentity()) {
-                org.joml.Matrix4f matrix = blockstateTransform.getMatrix();
+                Matrix4f matrix = blockstateTransform.getMatrix();
                 for (float[] v : vertices) {
-                    org.joml.Vector4f vec = new org.joml.Vector4f(v[0] - 0.5f, v[1] - 0.5f, v[2] - 0.5f, 1.0f);
+                    Vector4f vec = new Vector4f(v[0] - 0.5f, v[1] - 0.5f, v[2] - 0.5f, 1.0f);
                     matrix.transform(vec);
                     v[0] = vec.x() + 0.5f;
                     v[1] = vec.y() + 0.5f;
@@ -213,7 +221,7 @@ public class BackportBakedModel implements BakedModel {
         float[][] uvCorners = { {uv[0], uv[1]}, {uv[0], uv[3]}, {uv[2], uv[3]}, {uv[2], uv[1]} };
         applyUvRotation(uvCorners, uvRotation);
         int packedNormal = packNormal(normal[0], normal[1], normal[2]);
-        int packedLight = ignoreLight ? net.minecraft.client.renderer.LightTexture.pack(15, 15) : 0;
+        int packedLight = ignoreLight ? LightTexture.pack(15, 15) : 0;
         for (int i = 0; i < 4; i++) {
             int offset = i * VERTEX_SIZE;
             data[offset] = Float.floatToRawIntBits(positions[i][0]);

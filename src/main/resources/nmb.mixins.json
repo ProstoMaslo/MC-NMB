@@ -2,6 +2,7 @@
 	"required": true,
 	"package": "io.prostomaslo.nmb.mixin",
 	"compatibilityLevel": "JAVA_17",
+	"refmap": "nmb.refmap.json",
 	"mixins": [],
 	"client": [
 		"BlockElementRotationMixin",

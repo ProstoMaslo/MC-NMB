@@ -27,12 +27,4 @@ public class Face {
     public int getTintIndex() {
         return tintIndex;
     }
-    public float[] getNormalizedUv() {
-        return new float[]{
-                uv[0] / 16f,
-                uv[1] / 16f,
-                uv[2] / 16f,
-                uv[3] / 16f
-        };
-    }
 }

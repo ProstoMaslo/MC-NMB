@@ -130,7 +130,7 @@ public class BackportBakedModel implements BakedModel {
                     v[2] = vec.z() + 0.5f;
                 }
             }
-            float[] uv = face.getNormalizedUv();
+            float[] uv = face.getUv();
             float[] normal = computeNormal(vertices);
             ResourceLocation texResourceLocation = customModel.resolveTexture(face.getTexture());
             TextureAtlasSprite sprite = null;
